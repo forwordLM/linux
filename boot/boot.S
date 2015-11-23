@@ -39,4 +39,11 @@ reset:
 	str r6, [r3, #8]
 	
 	bl low_level_init			@do some low level init sush as disable watch dog
+	
+	ldr r0,=_start
+	mov r2, r0
+	sub r2, r2, #KERNEL_LOAD_ADDRESS_ALIGN
+	adr r1, kernel_phy_start
+	str r2, [r1]				@store kernel physical address to kernel_phy_start
 
+	
