@@ -1,1 +1,1 @@
-linux
+just study for linux
