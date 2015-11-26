@@ -58,6 +58,44 @@ ENTRY(stext)
 
 
 												
+/*
+ * setup the initial page tables. we only setup the barest
+ * amount which are required to get the kernel running, which
+ * generally means mapping in the kernel code.
+ * 
+ * r8=machinfo
+ * r9=cpuid
+ * r10=procinfo
+ *
+ * returns:
+ * r4 = physical page table address
+ *
+ */
+
+__create_page_tables:
+	pgtbl r4				@page table address
+							@r4 = (KERNEL_RAM_PADDR - 0x4000)
+
+	mov r0, r4				@r0 = r4
+	mov r3, #0				@r3 = 0
+	add r6, r0, #0x4000		@r6 = KERNEL_RAM_PADDR
+1:	str r3, [r0], #4		@[r0] = 0, r0 = r0+4
+	str r3, [r0], #4
+	str r3, [r0], #4
+	str r3, [r0], #4
+	teq r0, r6
+	bne 1b
+
+	ldr r7, [r10, #PROCINFO_MM_MMUFLAGS]	@mm_mmuflags
+	
+
+	mov r6, pc, lsr#20		@r6 = (pc >> 20)
+	orr r3, r7, r6, lsl#20	@r3 = r7 | (r6 << 20), flags + pgd_idx
+
+	str r3, [r4, r6, lsl#2]	@r3 = mem[r4+r6*4]
+
+	add r0, r4, #(KERNEL_START & 0xff000000) >> 18		@r4 = 0x30004000,r0 = r4 + (0xc0000000 & 0xff000000) >> 18
+	str r3, [r0, #(KERNEL_START & 0x00f00000) >> 18]!	
 
 
 
