@@ -55,6 +55,10 @@ ENTRY(stext)
 	beq __error_a
 	bl __vet_atags
 	bl __create_page_tables
+	
+	ldr sp, __switch_data		@address to jump to after, mmu has been enabled
+	adr lr, BSYM(_enable_mmu)	@return (PIC) address
+ARM(	add pc, r10, #PROCINFO_INITFUNC	)
 
 
 												
@@ -89,22 +93,18 @@ __create_page_tables:
 	ldr r7, [r10, #PROCINFO_MM_MMUFLAGS]	@mm_mmuflags
 	
 
-	mov r6, pc, lsr#20		@r6 = (pc >> 20)
-	orr r3, r7, r6, lsl#20	@r3 = r7 | (r6 << 20), (high 12bit pyhsical address + low 20 mmu flags)
-
-	str r3, [r4, r6, lsl#2]	@identify map_table base
-
-	@ start mapping 
-	add r0, r4, #(KERNEL_START & 0xff000000) >> 18		@r4 = 0x30004000,r0 = r4 + (0xc0000000 & 0xff000000) >> 18
-	str r3, [r0, #(KERNEL_START & 0x00f00000) >> 18]!	@map to the page base
-	add r0, r0, #4
-	ldr r6, =(KERNEL-1)
-	add r6, r4, r6, lsr#18
-1:	cmp r0, r6
-	add r3, #1 << 20
-	str r3, [r0], #4
+	mov r6, pc, lsl #20
+	add r3, r7, r6, lsr #20
+		
+	ldr r5, =KERNEL_START
+	ldr r6, =KERNEL_END - 1
+	add r0, r4, r5, lsr #18
+	str r3, [r0]
+1:	add r0, r0, #4
+	add r3, r3, 1 << 20
+	str r3, [r0]
+	cmp r0, r6
 	bls 1b
-
 		
 
 

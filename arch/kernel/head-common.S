@@ -2,6 +2,21 @@
 
 #define ATAG_CORE 0x54410001
 #define ATAG_CORE_SIZE ((2*4 + 3*4) >> 2)
+	.align	2
+	.type	__switch_data, %object
+__switch_data:
+	.long	__mmap_switched
+	.long	__data_loc							@r4
+	.long	_data								@r5
+	.long	__bss_start							@r6
+	.long	_end								@r7
+	.long 	processor_id						@r4
+	.long	__machine_arch_type					@r4
+	.long	__atags_pointer						@r5
+	.long	cr_alignment						@r7
+	.long	init_thread_union + THREAD_START_SP	@sp
+	
+
 
 /*
  * Read processor ID register (CP#15, CR0), and look up in the linker-built
