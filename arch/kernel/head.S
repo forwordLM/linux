@@ -1,6 +1,9 @@
 
 #include <asm/assembler.h>
 #include <asm/memory.h>
+#include <asm/system.h>
+#include <asm/domain.h>
+
 
 #if (PHYS_OFFSET & 0x001fffff)
 #error"PHYS_OFFSET must be at an even 2M boundary!"
@@ -57,10 +60,50 @@ ENTRY(stext)
 	bl __create_page_tables
 	
 	ldr sp, __switch_data		@address to jump to after, mmu has been enabled
-	adr lr, BSYM(_enable_mmu)	@return (PIC) address
-ARM(	add pc, r10, #PROCINFO_INITFUNC	)
+	adr lr, _enable_mmu			@return (PIC) address
+	add pc, r10, #PROCINFO_INITFUNC
 
 
+/*
+ * setup common bits before finally enabling the MMU.essentially
+ * this is just loading the page table pointer and domain access
+ * registers.
+ *
+ */
+	.type	__enable_mmu, %function
+__enable_mmu:
+#ifdef	CONFIG_ALIGNMENT_TRAP
+	orr r0, r0, #CR_A
+#else
+	bic r0, r0, #CR_A
+#endif
+#ifdef	CONFIG_CPU_DCACHE_DISABLE
+	bic	r0, r0, #CR_C
+#endif
+#ifdef	CONFIG_CPU_BPREDICT_DISABLE
+	bic	r0, r0, #CR_Z
+#endif
+#ifdef	CONFIG_CPU_ICACHE_DISABLE
+	bic	r0, r0, #CR_I
+#endif
+	mov r5, #(domain_val(DOMAIN_USER, DOMAIN_MANAGER) | \
+			domain_val(DOMAIN_KERNEL, DOMAIN_MANAGER) | \
+			domain_val(DOMAIN_TABLE, DOMAIN_MANAGER) | \
+			domain_val(DOMAIN_IO, DOMAIN_CLIENT))
+	mcr p15, 0, r5, c3, c0, 0	@load domain access register
+	mcr p15, 0, r4, c2, c0, 0	@load page table pointer
+	b	__turn_mmu_on
+
+
+	.align	5
+	.type	__turn_mmu_on, %function
+__turn_mmu_on:
+	mov r0, r0
+	mcr p15, 0, r0, c1, c0, 0	@write control reg
+	mrc	p15, 0, r3, c0, c0, 0	@read id reg
+	mov r3, r3
+	mov r3, r3
+	mov pc, sp
 												
 /*
  * setup the initial page tables. we only setup the barest
