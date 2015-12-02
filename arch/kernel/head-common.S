@@ -16,6 +16,35 @@ __switch_data:
 	.long	cr_alignment						@r7
 	.long	init_thread_union + THREAD_START_SP	@sp
 	
+/*
+ * The following fragment of code is execued witch the MMU on in MMU mode
+ *
+ */
+	.type	__mmap_switched, %function
+__mmap_switched:
+	adr r3, __switch_data + 4
+
+	ldmia r3!, {r4, r5, r6, r7}
+	cmp r4, r5
+1:	cmpne r5, r6
+	ldrne fp, [r4], #4
+	strne fp, [r5], #4
+	bne	1b
+
+
+	mov fp, #0		@clear bss
+1:	cmp r6, r7
+	strcfp, [r6], #4
+	bcc 1b
+
+	ldia r3, {r4, r5, r6, sp}
+	str r9, [r4]				@save processor ID
+	str r1, [r5]				@save machine type
+	bic r4, r0, #CR_A			@clear 'A' bit
+	stmia r6, {r0, r4}
+	b	start_kernel
+
+
 
 
 /*
