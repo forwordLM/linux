@@ -21,7 +21,20 @@ static struct init_tags {
 
 static struct machine_desc * __init setup_machine(unsigned int nr)
 {
-
+	struct machine_desc *list;
+	
+	/*
+	 * locate machine in the list of supported machines
+	 */
+	list = lookup_machine_type(nr);
+	if (!list) {
+		printk("Machine configration botched (nr %), unable to continue.\n", nr);
+	while(1);
+	}
+	
+	printk("Machine: %s", list->name);
+	
+	return list; 
 }
 
 static const char *machine_name;
